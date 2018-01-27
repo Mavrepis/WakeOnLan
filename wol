@@ -1,0 +1,74 @@
+#!/bin/bash
+destination_mac_flag=false
+phone_mac_flag=false
+port_flag=false
+broadcast=255.255.255.255
+
+usage() { echo "[-help] [-d Pc MAC address] [-m Phone MAC address] [-p Port] --Program to send Wake On Lan signal to your pc using your phone when both are connected to the shame network
+
+where:
+	-h Show this help
+	-d Destination mac address
+	-m Phone mac address
+	-p Port
+
+Example: 'wol -d ff:ff:ff:ff:ff:ff -m ec:ec:ec:ec:ec:ec -p 9'"
+}
+
+while getopts ":hd:m:p:" option;
+do
+	case "$option" in
+	h ) usage; exit ;;
+	d ) destination_mac=$OPTARG;destination_mac_flag=true;;
+	m ) phone_mac=$OPTARG;phone_mac_flag=true;;
+	p ) port=$OPTARG;port_flag=true;;
+	: ) echo "Missing option argument for -$OPTARG" >&2; exit 1;;	
+	esac
+done
+
+shift $((OPTIND -1))
+
+if [[ "$destination_mac_flag" = false || "$phone_mac_flag" = false || "$port_flag" = false  ]] ; then
+	echo "Wrong input please refer to -h (help)";
+	exit 1;
+fi
+magic_mac=$(echo $destination_mac | sed 's/://g')
+echo Magic mac: $magic_mac
+while true
+do
+	#Generating pc's ip address
+	ip_pc=$(cat /proc/net/arp | grep $destination_mac | awk '{print$1}')
+	if [ "$ip_pc" != "" ]; then
+		echo "Pc is turned on going to sleep"
+		sleep 3600
+	fi
+	#Generating phone's ip address
+	ip=$(cat /proc/net/arp | grep $phone_mac | awk '{print$1}')
+	echo Phone IP Address :$ip
+	if [ "$ip" != "" ]; then
+		echo "Phone sent WoL signal!"
+		# Magic packets consist of 12*`f` followed by 16 repetitions of the MAC address
+		magic_packet=$(
+		  printf 'f%.0s' {1..12}
+		  printf "$magic_mac%.0s" {1..16}
+		)
+		# ... and they need to be hex-escaped
+		magic_packet=$(
+		  echo $magic_packet | sed -e 's/../\\x&/g'
+		)
+		# echo $magic_packet
+		echo -e $magic_packet | nc -w1 -u $broadcast $port
+	else
+			echo "Awaiting for phone connection!"
+	fi
+	#Waiting for computer to start
+	sleep 60
+	#Cheking if it's night time
+	Date="$(date "+%H")"
+	if [ $Date -gt 22 ]
+	then
+		echo "Night mode on"
+		sleep 12h
+	fi
+	sleep 5;
+done
