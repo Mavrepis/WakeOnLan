@@ -4,7 +4,7 @@ phone_mac_flag=false
 port_flag=false
 broadcast=255.255.255.255
 
-usage() { echo "[-help] [-d Pc MAC address] [-m Phone MAC address] [-p Port] --Program to send Wake On Lan signal to your pc using your phone when both are connected to the shame network
+usage() { echo "[-help] [-d Pc MAC address] [-m Phone MAC address] [-p Port] --Program to send Wake On Lan signal to your pc using your phone when both are connected to the same network
 
 where:
 	-h Show this help
